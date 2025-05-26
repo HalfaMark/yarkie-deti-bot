@@ -18,32 +18,42 @@ def send_message(chat_id, text):
     }
     requests.post(url, json=payload)
 
-@app.route(f'/{TELEGRAM_TOKEN}', methods=['POST'])  # simplified route
+@app.route(f'/{TELEGRAM_TOKEN}', methods=['POST'])
 def webhook():
     try:
         data = request.get_json()
-        message = data['message']['text']
+        message_text = data['message']['text']
         chat_id = data['message']['chat']['id']
 
-        if message.lower() == "/start":
+        if message_text.lower() == "/start":
             send_message(chat_id, "Привет! Я бот, задавай мне вопросы.")
             return jsonify({"ok": True})
 
-        # Get response from OpenAI
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "user", "content": message}
-            ]
-        )
-        reply = response.choices[0].message.content.strip()
-        reply = reply[:4000]  # limit reply length
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "Ты дружелюбный ассистент, который помогает родителям с вопросами о детских занятиях."},
+                    {"role": "user", "content": message_text}
+                ]
+            )
+            reply = response.choices[0].message.content.strip()
+            reply = reply[:4000]  # Telegram limit
+            send_message(chat_id, reply)
 
-        send_message(chat_id, reply)
+        except Exception as e:
+            import traceback
+            print("Full error:")
+            traceback.print_exc()
+            send_message(chat_id, "Что-то пошло не так. Мы уже чиним!")
+
     except Exception as e:
+        import traceback
         traceback.print_exc()
         send_message(chat_id, "Произошла ошибка. Пожалуйста, попробуйте позже.")
+
     return jsonify({"ok": True})
+
 
 @app.route('/')
 def home():
