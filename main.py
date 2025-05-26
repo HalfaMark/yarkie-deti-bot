@@ -16,17 +16,23 @@ def webhook():
         chat_id = data["message"]["chat"]["id"]
         user_text = data["message"]["text"]
 
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "Ты дружелюбный помощник для родителей. Отвечай по-русски."},
-                    {"role": "user", "content": user_text}
-                ]
-            )
-            reply = response["choices"][0]["message"]["content"]
-        except:
-            reply = "Произошла ошибка. Попробуйте позже."
+try:
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "Ты дружелюбный ассистент, который помогает родителям с вопросами о детских занятиях."},
+            {"role": "user", "content": message_text}
+        ]
+    )
+    reply = response.choices[0].message.content.strip()
+    send_message(chat_id, reply)
+
+except Exception as e:
+    import traceback
+    print("Full error:")
+    traceback.print_exc()  # This will show real issue in Render logs
+    send_message(chat_id, "Что-то пошло не так. Мы уже чиним!")
+
 
         send_message(chat_id, reply)
 
